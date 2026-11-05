@@ -1,0 +1,35 @@
+# O0 用 sqlite 起步；O1 之后改用 postgis/postgis:16-3.4 并跑 Alembic。
+name: pacerule
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: pacerule
+      POSTGRES_PASSWORD: pacerule
+      POSTGRES_DB: pacerule
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pacerule -d pacerule"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://pacerule:pacerule@db:5432/pacerule
+      APP_VERSION: 0.1.0
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
