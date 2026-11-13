@@ -6,6 +6,19 @@ on:
   pull_request:
 
 jobs:
+  detect:
+    name: detect optional dirs
+    runs-on: ubuntu-latest
+    outputs:
+      mobile: ${{ steps.check.outputs.mobile }}
+      admin: ${{ steps.check.outputs.admin }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        run: |
+          if [ -f mobile/pubspec.yaml ]; then echo "mobile=true" >> "$GITHUB_OUTPUT"; else echo "mobile=false" >> "$GITHUB_OUTPUT"; fi
+          if [ -f admin/package.json ]; then echo "admin=true" >> "$GITHUB_OUTPUT"; else echo "admin=false" >> "$GITHUB_OUTPUT"; fi
+
   backend:
     name: backend (ruff + pytest)
     runs-on: ubuntu-latest
@@ -45,8 +58,9 @@ jobs:
 
   mobile:
     name: mobile (flutter analyze + test)
+    needs: detect
+    if: needs.detect.outputs.mobile == 'true'
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('mobile/pubspec.yaml') != '' }}
     defaults:
       run:
         working-directory: mobile
@@ -62,8 +76,9 @@ jobs:
 
   admin:
     name: admin (next build)
+    needs: detect
+    if: needs.detect.outputs.admin == 'true'
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('admin/package.json') != '' }}
     defaults:
       run:
         working-directory: admin
